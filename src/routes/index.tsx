@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   Search,
   Lock
-} , Filter, Search, RotateCcw } from "lucide-react";
+} , Filter, Search, RotateCcw } , Calendar } from "lucide-react";
 import { useRecon } from "@/lib/recon/store";
 import { TesterLoop } from "@/components/recon/TesterLoop";
 import { TruthBadge } from "@/components/recon/StateBadge";
@@ -255,6 +255,8 @@ export function EvidenceProvenanceSection() {
   const [selectedInputType, setSelectedInputType] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [hashFilter, setHashFilter] = useState<string>("");
+  const [startDateFilter, setStartDateFilter] = useState<string>("");
+  const [endDateFilter, setEndDateFilter] = useState<string>("");
 
   const filteredTraces = DEFAULT_TRACES.filter((trace) => {
     const matchesType = selectedInputType === "ALL" || trace.inputType === selectedInputType;
@@ -266,7 +268,10 @@ export function EvidenceProvenanceSection() {
       trace.verificationHash.toLowerCase().includes(q) ||
       trace.authorityProof.toLowerCase().includes(q) ||
       trace.claimKey.toLowerCase().includes(q);
-    return matchesType && matchesStatus && matchesHash;
+    const traceDate = trace.witnessTimestamp.slice(0, 10);
+    const matchesStartDate = !startDateFilter || traceDate >= startDateFilter;
+    const matchesEndDate = !endDateFilter || traceDate <= endDateFilter;
+    return matchesType && matchesStatus && matchesHash && matchesStartDate && matchesEndDate;
   });
 
   const activeTrace = filteredTraces.find((t) => t.receiptId === selectedReceiptId) || filteredTraces[0] || DEFAULT_TRACES[0];
