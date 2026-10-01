@@ -251,6 +251,15 @@ const DEFAULT_TRACES: ProvenanceTrace[] = [
 ];
 
 export function EvidenceProvenanceSection() {
+  const formatWitnessDate = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      return d.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+    } catch {
+      return isoStr;
+    }
+  };
   const [selectedReceiptId, setSelectedReceiptId] = useState<string>(DEFAULT_TRACES[0].receiptId);
   const [selectedInputType, setSelectedInputType] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
@@ -392,4 +401,124 @@ export function EvidenceProvenanceSection() {
       </div>
     </section>
   );
-}
+}      {/* Provenance Filters Bar */}
+      <div className="rounded-2xl border border-cyan-500/30 bg-slate-950/80 p-5 shadow-lg shadow-cyan-950/40 backdrop-blur-md space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/40 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-950/60 text-cyan-400">
+              <Filter className="h-4 w-4" />
+            </span>
+            <div>
+              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-cyan-300">Provenance Evidence Filters</h3>
+              <p className="font-mono text-[10px] text-slate-400">Narrow cryptographic lineage by origin, state, receipt hash, and witness observation timeline.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <span className="rounded-md border border-cyan-500/30 bg-cyan-950/50 px-2.5 py-1 text-cyan-300">
+              Showing <strong className="text-white font-bold">{filteredTraces.length}</strong> of {DEFAULT_TRACES.length} traces
+            </span>
+            {(selectedInputType !== "ALL" || selectedStatus !== "ALL" || hashFilter || startDateFilter || endDateFilter) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedInputType("ALL");
+                  setSelectedStatus("ALL");
+                  setHashFilter("");
+                  setStartDateFilter("");
+                  setEndDateFilter("");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-md border border-cyan-800/80 bg-slate-900/90 px-2.5 py-1 text-xs text-cyan-400 hover:border-cyan-400 hover:text-white transition-all"
+              >
+                <RotateCcw className="h-3 w-3" /> Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+          {/* Input Type */}
+          <div className="space-y-1.5">
+            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+              Input Type
+            </label>
+            <select
+              value={selectedInputType}
+              onChange={(e) => setSelectedInputType(e.target.value)}
+              className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-3 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+            >
+              <option value="ALL">All Sources &amp; Types</option>
+              <option value="AGENT_GATEWAY">Agent Gateway / Edge</option>
+              <option value="DATABASE">Database / Postgres</option>
+              <option value="WEBHOOK">Webhook / Secret</option>
+              <option value="ENCRYPTED_VAULT">Encrypted Vault</option>
+              <option value="SPECIFICATION">Specification</option>
+            </select>
+          </div>
+
+          {/* Verification Status */}
+          <div className="space-y-1.5">
+            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+              Verification State
+            </label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-3 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+            >
+              <option value="ALL">All Verification States</option>
+              <option value="MATCH">MATCH (Verified Cryptographic)</option>
+              <option value="MISMATCH">MISMATCH (Divergence)</option>
+              <option value="PENDING">PENDING (Awaiting Witness)</option>
+            </select>
+          </div>
+
+          {/* Receipt Hash / Signature */}
+          <div className="space-y-1.5">
+            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+              Receipt / Authority Key
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={hashFilter}
+                onChange={(e) => setHashFilter(e.target.value)}
+                placeholder="Search hash, ID, proof..."
+                className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 pl-3 pr-8 py-2 font-mono text-xs text-white placeholder:text-slate-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+              />
+              {hashFilter && (
+                <button
+                  type="button"
+                  onClick={() => setHashFilter("")}
+                  className="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Date Range */}
+          <div className="space-y-1.5">
+            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="h-3 w-3 text-cyan-400" /> Witness Date Range (UTC)
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+                className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-2.5 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+              />
+              <span className="font-mono text-xs text-slate-500">to</span>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+                className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-2.5 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
