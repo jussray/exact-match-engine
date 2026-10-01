@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   Search,
   Lock
-} from "lucide-react";
+} , Filter, Search, RotateCcw } from "lucide-react";
 import { useRecon } from "@/lib/recon/store";
 import { TesterLoop } from "@/components/recon/TesterLoop";
 import { TruthBadge } from "@/components/recon/StateBadge";
@@ -197,6 +197,7 @@ import { Link2, GitBranch, Shield, KeyRound, Sparkles, CheckCheck } from "lucide
 export interface ProvenanceTrace {
   receiptId: string;
   claimId: string;
+  inputType: "SPECIFICATION" | "DATABASE" | "WEBHOOK" | "AGENT_GATEWAY" | "ENCRYPTED_VAULT";
   claimKey: string;
   expectedVersion: string;
   observedVersion: string;
@@ -211,6 +212,7 @@ const DEFAULT_TRACES: ProvenanceTrace[] = [
   {
     receiptId: "rcpt-auth-9812",
     claimId: "claim-edge-auth",
+    inputType: "AGENT_GATEWAY",
     claimKey: "prod.edge.auth::session_token",
     expectedVersion: "v2.4.1 [hash:0x8f3c21a4]",
     observedVersion: "v2.4.1 [hash:0x8f3c21a4]",
@@ -223,6 +225,7 @@ const DEFAULT_TRACES: ProvenanceTrace[] = [
   {
     receiptId: "rcpt-db-7104",
     claimId: "claim-postgres-schema",
+    inputType: "DATABASE",
     claimKey: "db.schema::migration_head",
     expectedVersion: "20261001_040000",
     observedVersion: "20261001_040000",
@@ -235,6 +238,7 @@ const DEFAULT_TRACES: ProvenanceTrace[] = [
   {
     receiptId: "rcpt-env-5521",
     claimId: "claim-stripe-webhook",
+    inputType: "WEBHOOK",
     claimKey: "billing.webhook::endpoint_secret",
     expectedVersion: "whsec_live_2026_verified",
     observedVersion: "whsec_live_2026_verified",
@@ -247,6 +251,25 @@ const DEFAULT_TRACES: ProvenanceTrace[] = [
 ];
 
 export function EvidenceProvenanceSection() {
+  const [selectedReceiptId, setSelectedReceiptId] = useState<string>(DEFAULT_TRACES[0].receiptId);
+  const [selectedInputType, setSelectedInputType] = useState<string>("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+  const [hashFilter, setHashFilter] = useState<string>("");
+
+  const filteredTraces = DEFAULT_TRACES.filter((trace) => {
+    const matchesType = selectedInputType === "ALL" || trace.inputType === selectedInputType;
+    const matchesStatus = selectedStatus === "ALL" || trace.status === selectedStatus;
+    const q = hashFilter.trim().toLowerCase();
+    const matchesHash =
+      !q ||
+      trace.receiptId.toLowerCase().includes(q) ||
+      trace.verificationHash.toLowerCase().includes(q) ||
+      trace.authorityProof.toLowerCase().includes(q) ||
+      trace.claimKey.toLowerCase().includes(q);
+    return matchesType && matchesStatus && matchesHash;
+  });
+
+  const activeTrace = filteredTraces.find((t) => t.receiptId === selectedReceiptId) || filteredTraces[0] || DEFAULT_TRACES[0];
   const [selectedTrace, setSelectedTrace] = useState<ProvenanceTrace>(DEFAULT_TRACES[0]);
 
   return (
