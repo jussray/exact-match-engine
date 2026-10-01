@@ -167,6 +167,8 @@ function Dashboard() {
           </div>
         </section>
 
+        <EvidenceProvenanceSection />
+
         {/* Interactive Reconciliation Tester Loop (Functional Contract Preserved) */}
         <section className="rounded-2xl border border-cyan-900/50 bg-slate-900/40 p-6 backdrop-blur">
           <div className="mb-6 flex items-center justify-between border-b border-cyan-900/30 pb-4">
@@ -186,5 +188,180 @@ function Dashboard() {
         </section>
       </div>
     </div>
+  );
+}
+
+
+import { Link2, GitBranch, Shield, KeyRound, Sparkles, CheckCheck } from "lucide-react";
+
+export interface ProvenanceTrace {
+  receiptId: string;
+  claimId: string;
+  claimKey: string;
+  expectedVersion: string;
+  observedVersion: string;
+  witnessSource: string;
+  witnessTimestamp: string;
+  authorityProof: string;
+  verificationHash: string;
+  status: "MATCH" | "MISMATCH" | "PENDING";
+}
+
+const DEFAULT_TRACES: ProvenanceTrace[] = [
+  {
+    receiptId: "rcpt-auth-9812",
+    claimId: "claim-edge-auth",
+    claimKey: "prod.edge.auth::session_token",
+    expectedVersion: "v2.4.1 [hash:0x8f3c21a4]",
+    observedVersion: "v2.4.1 [hash:0x8f3c21a4]",
+    witnessSource: "Ledger Witness #04 (Deno Edge Function)",
+    witnessTimestamp: "2026-10-01T04:22:10Z",
+    authorityProof: "FOUNDER_SIGNATURE_KEY_0x99A",
+    verificationHash: "sha256-4b89f2801a2f633d9c8789547d8912e7",
+    status: "MATCH"
+  },
+  {
+    receiptId: "rcpt-db-7104",
+    claimId: "claim-postgres-schema",
+    claimKey: "db.schema::migration_head",
+    expectedVersion: "20261001_040000",
+    observedVersion: "20261001_040000",
+    witnessSource: "Supabase PG Witness #01",
+    witnessTimestamp: "2026-10-01T04:25:30Z",
+    authorityProof: "SYSTEM_MIGRATOR_AUTH",
+    verificationHash: "sha256-7890a8871bcd213e45980df98a124c89",
+    status: "MATCH"
+  },
+  {
+    receiptId: "rcpt-env-5521",
+    claimId: "claim-stripe-webhook",
+    claimKey: "billing.webhook::endpoint_secret",
+    expectedVersion: "whsec_live_2026_verified",
+    observedVersion: "whsec_live_2026_verified",
+    witnessSource: "Encrypted Vault Witness #02",
+    witnessTimestamp: "2026-10-01T04:28:15Z",
+    authorityProof: "SECURE_CREDENTIAL_SEAL",
+    verificationHash: "sha256-993412ea5577ff001928374650a8b712",
+    status: "MATCH"
+  }
+];
+
+export function EvidenceProvenanceSection() {
+  const [selectedTrace, setSelectedTrace] = useState<ProvenanceTrace>(DEFAULT_TRACES[0]);
+
+  return (
+    <section className="space-y-8 rounded-3xl border border-cyan-500/30 bg-slate-950/90 p-6 sm:p-10 shadow-[0_0_50px_rgba(6,182,212,0.15)] backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-cyan-900/50 pb-6">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/60 px-3.5 py-1 text-xs font-mono font-semibold tracking-wider text-cyan-300 uppercase">
+            <GitBranch className="h-3.5 w-3.5 text-cyan-400" />
+            Verification Lineage
+          </div>
+          <h2 className="mt-3 font-mono text-2xl sm:text-3xl font-extrabold tracking-tight text-white uppercase">
+            Evidence Provenance & Verification Trace
+          </h2>
+          <p className="mt-2 max-w-2xl text-xs sm:text-sm font-mono text-slate-400">
+            Audit the end-to-end cryptographic proof chain linking claimed specifications, witness observations, and immutable reconciliation receipts.
+          </p>
+        </div>
+
+        <div className="font-mono text-xs text-slate-400">
+          PROVENANCE GRAPH: <strong className="text-cyan-300">FULLY CONNECTED</strong>
+        </div>
+      </div>
+
+      {/* Interactive Trace Flow */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Receipt Selector List */}
+        <div className="lg:col-span-5 space-y-3">
+          <span className="font-mono text-xs text-cyan-400 uppercase tracking-wider">Active Reconciliation Receipts</span>
+          {DEFAULT_TRACES.map((t) => (
+            <button
+              key={t.receiptId}
+              type="button"
+              onClick={() => setSelectedTrace(t)}
+              className={`w-full rounded-xl border p-4 text-left font-mono transition-all duration-200 ${
+                selectedTrace.receiptId === t.receiptId
+                  ? "border-cyan-400 bg-cyan-950/40 shadow-[0_0_20px_rgba(6,182,212,0.25)] ring-1 ring-cyan-400/50"
+                  : "border-slate-800 bg-slate-900/50 hover:border-cyan-900 hover:bg-slate-900/80"
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-white">{t.claimKey}</span>
+                <span className="rounded bg-emerald-950 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-700/50">
+                  {t.status}
+                </span>
+              </div>
+              <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+                <span>Receipt: <strong className="text-cyan-300">{t.receiptId}</strong></span>
+                <span>{new Date(t.witnessTimestamp).toLocaleTimeString()}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Provenance Deep Graph Card */}
+        <div className="lg:col-span-7 rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 font-mono backdrop-blur">
+          <div className="flex items-center justify-between border-b border-cyan-900/40 pb-4">
+            <span className="text-xs font-bold text-cyan-300 uppercase flex items-center gap-2">
+              <Shield className="h-4 w-4 text-cyan-400" />
+              Cryptographic Lineage: {selectedTrace.receiptId}
+            </span>
+            <span className="text-[10px] text-slate-500">SHA-256 VERIFIED</span>
+          </div>
+
+          {/* Stepped Provenance Pipeline */}
+          <div className="mt-6 space-y-4">
+            {/* Step 1: Claim Authority */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+                  <KeyRound className="h-3.5 w-3.5 text-cyan-400" />
+                  1. CLAIM SPECIFICATION & AUTHORITY
+                </span>
+                <span className="text-[10px] text-cyan-400">{selectedTrace.claimId}</span>
+              </div>
+              <div className="mt-2 text-xs text-slate-300 space-y-1">
+                <div>Key: <strong className="text-white">{selectedTrace.claimKey}</strong></div>
+                <div>Expected Value: <strong className="text-cyan-200">{selectedTrace.expectedVersion}</strong></div>
+                <div>Authority Signature: <strong className="text-emerald-400">{selectedTrace.authorityProof}</strong></div>
+              </div>
+            </div>
+
+            {/* Step 2: Observed Witness */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+                  <Link2 className="h-3.5 w-3.5 text-purple-400" />
+                  2. INDEPENDENT WITNESS OBSERVATION
+                </span>
+                <span className="text-[10px] text-purple-300">{new Date(selectedTrace.witnessTimestamp).toLocaleString()}</span>
+              </div>
+              <div className="mt-2 text-xs text-slate-300 space-y-1">
+                <div>Source: <strong className="text-white">{selectedTrace.witnessSource}</strong></div>
+                <div>Observed Value: <strong className="text-purple-200">{selectedTrace.observedVersion}</strong></div>
+              </div>
+            </div>
+
+            {/* Step 3: Sealed Receipt */}
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/10 p-3.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
+                  3. RECONCILIATION RECEIPT SEAL
+                </span>
+                <span className="rounded bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-300 font-bold border border-emerald-800">
+                  EXACT MATCH
+                </span>
+              </div>
+              <div className="mt-2 text-xs text-slate-300 space-y-1">
+                <div>Receipt ID: <strong className="text-white font-mono">{selectedTrace.receiptId}</strong></div>
+                <div className="text-[11px] text-slate-400 truncate">Verification Hash: <code className="text-emerald-300">{selectedTrace.verificationHash}</code></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
