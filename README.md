@@ -17,8 +17,12 @@ Exact Match Engine is a deterministic reconciliation product for comparing claim
 
 The public product uses a precision verification-lab language: cyan for claimed state, violet for observed state, and explicit result states for `MATCH`, `MISMATCH`, `MISSING`, `STALE`, `BLOCKED`, or `Awaiting comparison`.
 
+## Verification gate
+
+Every push to `main` runs the GitHub `Verify` workflow: install, TypeScript typecheck, deterministic unit tests, and production build. A green workflow is required before treating the repository state as verified.
+
 ## Repository status
 
-This repository is being reconciled with the complete application source. The previous scaffold contained seeded proof/provenance examples and malformed dashboard source; those claims are being removed rather than treated as real evidence.
+The complete customer-facing application is being restored here as the durable GitHub source. Internal portfolio labels are not part of the public product surface.
 
 A rollback snapshot of the pre-repair `main` state is preserved at `snapshot/pre-canonical-sync-20261002`.
