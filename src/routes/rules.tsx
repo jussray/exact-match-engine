@@ -1,0 +1,5 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useRecon } from "@/lib/recon/store";
+import { Tag } from "@/components/recon/StateBadge";
+export const Route=createFileRoute("/rules")({component:RulesPage});
+function RulesPage(){const {state}=useRecon();return <div className="space-y-4"><h1 className="text-xl font-bold">Reconciliation rules</h1><p className="text-sm text-muted-foreground">Rules are deterministic. No cookie or fingerprint grants merge, write, or spend authority.</p><ul className="grid gap-3">{state.rules.map((r)=><li key={r.id} className="panel space-y-2 p-4"><div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">{r.name}</h2><Tag>{r.id}</Tag></div><p className="text-xs text-muted-foreground">{r.description}</p><div className="flex flex-wrap gap-1.5"><Tag>applies to: {r.applies_to_scope}</Tag><Tag>exact match → {r.on_exact_match}</Tag><Tag>mismatch → {r.on_mismatch}</Tag><Tag>missing evidence → {r.on_missing_evidence}</Tag></div></li>)}</ul></div>;}

@@ -1,0 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { EvidenceForm } from "@/components/recon/EvidenceForm";
+import { Tag } from "@/components/recon/StateBadge";
+import { useRecon } from "@/lib/recon/store";
+export const Route=createFileRoute("/evidence")({component:EvidencePage});
+function EvidencePage(){const {state}=useRecon();return <div className="space-y-4"><h1 className="text-xl font-bold">Evidence intake</h1><EvidenceForm/><h2 className="pt-2 text-sm font-semibold">Recorded evidence</h2><ul className="grid gap-3 sm:grid-cols-2">{state.evidence.map((e)=>{const claim=state.claims.find((c)=>c.id===e.claim_id);return <li key={e.id} className="panel space-y-2 p-4"><div className="flex items-start justify-between gap-2"><span className="text-sm">{e.kind}</span><Tag>{e.domain}</Tag></div><p className="text-xs text-muted-foreground">{e.description||"—"}</p><div className="flex flex-wrap gap-1.5"><Tag>observed: {e.observed_version}</Tag><Tag>ref: {e.reference}</Tag><Tag>claim: {claim?.statement??e.claim_id}</Tag></div><p className="text-[11px] text-muted-foreground">{e.observed_at}</p></li>;})}</ul>{state.evidence.length===0&&<p className="text-sm text-muted-foreground">No evidence recorded.</p>}</div>;}
