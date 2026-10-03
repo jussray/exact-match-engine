@@ -1,0 +1,6 @@
+import type { CookieStatus,TruthState } from "@/lib/recon/types";
+const truthClass:Record<TruthState,string>={VERIFIED:"text-verified border-verified/50 bg-verified/10",INFERRED:"text-inferred border-inferred/50 bg-inferred/10",UNKNOWN:"text-unknown border-unknown/50 bg-unknown/10",BLOCKED:"text-blocked border-blocked/50 bg-blocked/10",SUPERSEDED:"text-superseded border-superseded/50 bg-superseded/10"};
+const cookieClass:Record<CookieStatus,string>={current:"text-verified border-verified/50 bg-verified/10",stale:"text-unknown border-unknown/50 bg-unknown/10",superseded:"text-superseded border-superseded/50 bg-superseded/10",blocked:"text-blocked border-blocked/50 bg-blocked/10"};
+export function TruthBadge({state}:{state:TruthState}){return <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-semibold tracking-wide ${truthClass[state]}`}>{state}</span>;}
+export function CookieBadge({status}:{status:CookieStatus}){return <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${cookieClass[status]}`}>{status}</span>;}
+export function Tag({children}:{children:React.ReactNode}){return <span className="inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{children}</span>;}

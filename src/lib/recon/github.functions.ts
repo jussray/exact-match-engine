@@ -1,0 +1,4 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+const input=z.object({owner:z.string().regex(/^[\w.-]{1,39}$/),repo:z.string().regex(/^[\w.-]{1,100}$/),branch:z.string().min(1).max(150).regex(/^[\w./-]+$/)});
+export const readGitHubHead=createServerFn({method:"GET"}).validator((data)=>input.parse(data)).handler(async({data})=>{const url=`https://api.github.com/repos/${encodeURIComponent(data.owner)}/${encodeURIComponent(data.repo)}/commits/${encodeURIComponent(data.branch)}`;const response=await fetch(url,{headers:{Accept:"application/vnd.github+json","User-Agent":"Exact-Match-Engine"}});if(!response.ok)throw new Error(`GitHub read failed (${response.status}). Check public repository access and branch.`);const body:unknown=await response.json();const sha=z.object({sha:z.string().regex(/^[a-f0-9]{40}$/)}).parse(body).sha;return {sha,source:url,retrieved_at:new Date().toISOString()};});
