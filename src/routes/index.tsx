@@ -7,19 +7,12 @@ import {
   ShieldCheck,
   Radio,
   FileCheck2,
-  Cpu,
-  Layers,
-  Activity,
-  Flame,
-  CheckCircle2,
-  Search,
-  Lock
-} , Filter, Search, RotateCcw } , Calendar } from "lucide-react";
+} from "lucide-react";
 import { useRecon } from "@/lib/recon/store";
 import { TesterLoop } from "@/components/recon/TesterLoop";
 import { TruthBadge } from "@/components/recon/StateBadge";
 import { parseFields } from "@/lib/recon/witness";
-import { ReactorScene } from "@/components/recon/ReactorScene";
+import { scannerStatus } from "@/lib/recon/scanner-status";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,12 +20,12 @@ export const Route = createFileRoute("/")({
       { title: "Exact Match Engine — Claims to Reality" },
       {
         name: "description",
-        content: "Autonomous field-by-field truth reconciliation. Verify that observed reality matches claimed specification.",
+        content: "Compare claimed state with independently observed evidence, field by field.",
       },
       { property: "og:title", content: "Exact Match Engine — Claims to Reality" },
       {
         property: "og:description",
-        content: "Autonomous field-by-field truth reconciliation. Verify that observed reality matches claimed specification.",
+        content: "Compare claimed state with independently observed evidence, field by field.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -42,13 +35,13 @@ export const Route = createFileRoute("/")({
 });
 
 const features = [
-  { to: "/", name: "Dashboard", index: "01", description: "Real-time state comparison & engine telemetry" },
-  { to: "/claims", name: "Claims", index: "02", description: "Expected state schemas, authorities & specifications" },
-  { to: "/evidence", name: "Evidence", index: "03", description: "Independently gathered witness data & proofs" },
-  { to: "/claims", name: "Reconciliation", index: "04", description: "Field-by-field diff engine & mismatch isolation" },
-  { to: "/attacks", name: "Attacks", index: "05", description: "Independent adversarial challenges & boundary probes" },
-  { to: "/continuity", name: "Continuity", index: "06", description: "Cryptographic lineage, proof cookies & drift prevention" },
-  { to: "/receipts", name: "Receipts", index: "07", description: "Immutable cryptographic ledger of comparison findings" },
+  { to: "/", name: "Dashboard", index: "01", description: "Current comparison state" },
+  { to: "/claims", name: "Claims", index: "02", description: "Expected state & scope" },
+  { to: "/evidence", name: "Evidence", index: "03", description: "Observed witness values" },
+  { to: "/claims", name: "Reconciliation", index: "04", description: "Field-by-field comparison" },
+  { to: "/attacks", name: "Attacks", index: "05", description: "Independent challenges" },
+  { to: "/continuity", name: "Continuity", index: "06", description: "Stale proof & lineage" },
+  { to: "/receipts", name: "Receipts", index: "07", description: "Traceable findings" },
 ] as const;
 
 function Dashboard() {
@@ -62,6 +55,7 @@ function Dashboard() {
       (!owner.updated_at || r.created_at >= owner.updated_at)
     );
   });
+
   const recent = [...currentReceipts].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   const activeReceipts = recent ? currentReceipts.filter((r) => r.run_id === recent.run_id) : [];
   const latest = activeReceipts.find((r) => r.result === "exact_version_mismatch") ?? recent;
@@ -71,454 +65,296 @@ function Dashboard() {
   const mismatchedFields = new Set(
     activeReceipts.filter((r) => r.result === "exact_version_mismatch").map((r) => r.field),
   );
-  const runResult = activeReceipts.some((r) => r.result === "exact_version_mismatch")
-    ? "MISMATCH"
-    : activeReceipts.some(
-          (r) =>
-            r.result === "stale_evidence" ||
-            (r.witness_as_of && Date.now() - Date.parse(r.witness_as_of) > 24 * 60 * 60 * 1000),
-        )
-      ? "STALE"
-      : activeReceipts.some(
-            (r) => r.result === "unverified_witness" || r.result === "scope_separation_violation",
-          )
-        ? "BLOCKED"
-        : activeReceipts.some((r) => r.result === "missing_evidence")
-          ? "MISSING"
-          : latest
-            ? "MATCH"
-            : "Awaiting comparison";
+  const runResult = scannerStatus(activeReceipts);
 
-  const matchedCount = currentReceipts.filter((r) => r.result === "match").length;
-  const mismatchedCount = currentReceipts.filter((r) => r.result === "exact_version_mismatch").length;
+  const counts = [
+    {
+      label: "Awaiting proof",
+      value: state.claims.filter((c) => c.truth_state === "UNKNOWN").length,
+      to: "/claims",
+    },
+    {
+      label: "Matched",
+      value: currentReceipts.filter((r) => r.result === "match").length,
+      to: "/receipts",
+    },
+    {
+      label: "Mismatched",
+      value: currentReceipts.filter((r) => r.result === "exact_version_mismatch").length,
+      to: "/receipts",
+    },
+    {
+      label: "Missing / blocked",
+      value: currentReceipts.filter((r) =>
+        [
+          "missing_evidence",
+          "scope_separation_violation",
+          "stale_evidence",
+          "unverified_witness",
+        ].includes(r.result),
+      ).length,
+      to: "/receipts",
+    },
+    {
+      label: "Stale cookies",
+      value: state.cookies.filter((c) => c.status === "stale").length,
+      to: "/continuity",
+    },
+    {
+      label: "Open attacks",
+      value: state.attacks.filter((a) => a.status === "open").length,
+      to: "/attacks",
+    },
+  ] as const;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-black">
-      {/* Top Cyber Ribbon */}
-      <div className="border-b border-cyan-900/40 bg-slate-900/80 px-4 py-2 font-mono text-[11px] text-cyan-300">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span>EXACT MATCH ENGINE // QUANTUM PROOF PROTOCOL</span>
-          </div>
-          <div className="hidden items-center gap-6 sm:flex">
-            <span>DRIFT: 0.00%</span>
-            <span>SPEC: RFC-9122</span>
-            <span>AUTHORITY: FOUNDER VERIFIED</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl space-y-12 px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero Branding */}
-        <header className="space-y-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/60 px-4 py-1.5 text-xs font-mono text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-            <ScanLine className="h-3.5 w-3.5 text-cyan-400" />
-            <span>EXACT SPECIFICATION RECONCILIATION</span>
-          </div>
-          <h1 className="font-mono text-4xl font-extrabold tracking-tight text-white uppercase sm:text-5xl lg:text-6xl">
-            EXACT MATCH ENGINE
-          </h1>
-          <p className="mx-auto max-w-2xl font-mono text-sm text-slate-400 sm:text-base">
-            Autonomous field-by-field truth reconciliation. Verify that observed reality matches claimed specification with cryptographic proof.
-          </p>
-        </header>
-
-        {/* Dynamic Holographic Reactor Scene */}
-        <ReactorScene
-          runResult={runResult}
-          mismatchedCount={mismatchedCount}
-          matchedCount={matchedCount}
-          totalClaims={state.claims.length}
-          latestClaimId={claim?.id}
+    <div className="space-y-0">
+      <section
+        className="relative isolate -mx-4 overflow-hidden border-b border-border bg-background lg:-mx-8"
+        aria-label="Verification laboratory"
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_70%_35%,rgba(168,85,247,0.20),transparent_35%),radial-gradient(circle_at_55%_50%,rgba(6,182,212,0.20),transparent_38%),linear-gradient(120deg,#030607_20%,#071018_60%,#090711_100%)]"
         />
-
-        {/* 6 Cyber Module Cards Grid */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between border-b border-cyan-900/40 pb-3">
-            <h2 className="font-mono text-lg font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-2">
-              <Layers className="h-4 w-4 text-cyan-400" />
-              CORE ENGINE MODULES
-            </h2>
-            <span className="font-mono text-xs text-slate-400">06 ACTIVE SUBSYSTEMS</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {features.slice(0, 6).map((feat) => (
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-background via-background/80 to-background/30" />
+        <div className="mx-auto grid min-h-[520px] max-w-screen-2xl items-center gap-8 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)] lg:py-16">
+          <div className="max-w-xl">
+            <p className="mb-5 flex items-center gap-2 text-xs font-bold uppercase text-primary">
+              <Crosshair size={15} /> No assumptions. Just evidence.
+            </p>
+            <h1 className="font-display text-5xl leading-[1.08] sm:text-6xl xl:text-7xl">
+              Does It Exactly
+              <br />
+              <em className="not-italic text-primary">Match Reality?</em>
+            </h1>
+            <p className="mt-6 max-w-md text-sm leading-7 text-foreground/80">
+              The Exact Match Engine compares what is claimed against what is actually observed.
+              Every field has a finding. Every finding has a traceable receipt.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                key={feat.index}
-                to={feat.to}
-                className="group relative overflow-hidden rounded-xl border border-cyan-900/40 bg-slate-900/50 p-5 backdrop-blur transition-all duration-200 hover:border-cyan-400/60 hover:bg-slate-900/80 hover:shadow-[0_0_25px_rgba(6,182,212,0.18)]"
+                to="/claims/new"
+                className="inline-flex items-center gap-2 bg-primary px-5 py-3 text-xs font-bold uppercase text-primary-foreground hover:opacity-90"
               >
-                <div className="flex items-center justify-between font-mono text-xs text-cyan-400 mb-3">
-                  <span className="rounded bg-cyan-950/80 px-2 py-0.5 border border-cyan-800/40">
-                    {feat.index}
-                  </span>
-                  <ArrowUpRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-cyan-300" />
-                </div>
-                <h3 className="font-mono text-base font-bold uppercase tracking-wide text-white group-hover:text-cyan-200">
-                  {feat.name}
-                </h3>
-                <p className="mt-2 font-mono text-xs text-slate-400 leading-relaxed">
-                  {feat.description}
-                </p>
+                Run an Exact Match <ArrowRight size={16} />
               </Link>
-            ))}
-          </div>
-        </section>
-
-        <EvidenceProvenanceSection />
-
-        {/* Interactive Reconciliation Tester Loop (Functional Contract Preserved) */}
-        <section className="rounded-2xl border border-cyan-900/50 bg-slate-900/40 p-6 backdrop-blur">
-          <div className="mb-6 flex items-center justify-between border-b border-cyan-900/30 pb-4">
-            <div>
-              <h2 className="font-mono text-lg font-bold uppercase text-white flex items-center gap-2">
-                <Crosshair className="h-5 w-5 text-cyan-400" />
-                RECONCILIATION TEST HARNESS
-              </h2>
-              <p className="font-mono text-xs text-slate-400 mt-1">
-                Field-level verification against live and mocked external witnesses.
-              </p>
+              <a
+                href="#how-it-works"
+                className="inline-flex items-center gap-2 border border-border px-5 py-3 text-xs font-bold uppercase text-foreground hover:border-primary"
+              >
+                See How It Works <ArrowUpRight size={15} />
+              </a>
             </div>
-            <TruthBadge state={claim?.truth_state ?? "UNKNOWN"} />
           </div>
 
-          <TesterLoop />
-        </section>
-      </div>
-    </div>
-  );
-}
+          <div
+            className="relative grid grid-cols-[minmax(0,1fr)_60px_minmax(0,1fr)] items-stretch gap-1 sm:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] sm:gap-3"
+            data-testid="comparison-lab"
+          >
+            <div className="min-h-64 border border-primary/70 bg-background/75 p-3 shadow-[inset_0_0_35px_var(--color-primary)] backdrop-blur-md sm:min-h-80 sm:p-5">
+              <p className="text-xs font-bold uppercase text-primary sm:text-sm">
+                01 / Claimed state
+              </p>
+              <p className="mt-2 text-[10px] text-muted-foreground">EXPECTED / ASSERTED</p>
+              <dl className="mt-8 space-y-4">
+                {claimed ? (
+                  Object.entries(claimed).map(([k, v]) => (
+                    <div key={k} className="border-b border-primary/30 pb-2">
+                      <dt className="break-all text-[10px] text-muted-foreground">{k}</dt>
+                      <dd className="mt-1 break-all font-mono text-xs text-primary">{v}</dd>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs leading-6 text-muted-foreground">Awaiting claim</p>
+                )}
+              </dl>
+            </div>
 
-
-import { Link2, GitBranch, Shield, KeyRound, Sparkles, CheckCheck } from "lucide-react";
-
-export interface ProvenanceTrace {
-  receiptId: string;
-  claimId: string;
-  inputType: "SPECIFICATION" | "DATABASE" | "WEBHOOK" | "AGENT_GATEWAY" | "ENCRYPTED_VAULT";
-  claimKey: string;
-  expectedVersion: string;
-  observedVersion: string;
-  witnessSource: string;
-  witnessTimestamp: string;
-  authorityProof: string;
-  verificationHash: string;
-  status: "MATCH" | "MISMATCH" | "PENDING";
-}
-
-const DEFAULT_TRACES: ProvenanceTrace[] = [
-  {
-    receiptId: "rcpt-auth-9812",
-    claimId: "claim-edge-auth",
-    inputType: "AGENT_GATEWAY",
-    claimKey: "prod.edge.auth::session_token",
-    expectedVersion: "v2.4.1 [hash:0x8f3c21a4]",
-    observedVersion: "v2.4.1 [hash:0x8f3c21a4]",
-    witnessSource: "Ledger Witness #04 (Deno Edge Function)",
-    witnessTimestamp: "2026-10-01T04:22:10Z",
-    authorityProof: "FOUNDER_SIGNATURE_KEY_0x99A",
-    verificationHash: "sha256-4b89f2801a2f633d9c8789547d8912e7",
-    status: "MATCH"
-  },
-  {
-    receiptId: "rcpt-db-7104",
-    claimId: "claim-postgres-schema",
-    inputType: "DATABASE",
-    claimKey: "db.schema::migration_head",
-    expectedVersion: "20261001_040000",
-    observedVersion: "20261001_040000",
-    witnessSource: "Supabase PG Witness #01",
-    witnessTimestamp: "2026-10-01T04:25:30Z",
-    authorityProof: "SYSTEM_MIGRATOR_AUTH",
-    verificationHash: "sha256-7890a8871bcd213e45980df98a124c89",
-    status: "MATCH"
-  },
-  {
-    receiptId: "rcpt-env-5521",
-    claimId: "claim-stripe-webhook",
-    inputType: "WEBHOOK",
-    claimKey: "billing.webhook::endpoint_secret",
-    expectedVersion: "whsec_live_2026_verified",
-    observedVersion: "whsec_live_2026_verified",
-    witnessSource: "Encrypted Vault Witness #02",
-    witnessTimestamp: "2026-10-01T04:28:15Z",
-    authorityProof: "SECURE_CREDENTIAL_SEAL",
-    verificationHash: "sha256-993412ea5577ff001928374650a8b712",
-    status: "MATCH"
-  }
-];
-
-export function EvidenceProvenanceSection() {
-  const formatWitnessDate = (isoStr: string) => {
-    try {
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return isoStr;
-      return d.toISOString().replace("T", " ").slice(0, 19) + " UTC";
-    } catch {
-      return isoStr;
-    }
-  };
-  const [selectedReceiptId, setSelectedReceiptId] = useState<string>(DEFAULT_TRACES[0].receiptId);
-  const [selectedInputType, setSelectedInputType] = useState<string>("ALL");
-  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [hashFilter, setHashFilter] = useState<string>("");
-  const [startDateFilter, setStartDateFilter] = useState<string>("");
-  const [endDateFilter, setEndDateFilter] = useState<string>("");
-
-  const filteredTraces = DEFAULT_TRACES.filter((trace) => {
-    const matchesType = selectedInputType === "ALL" || trace.inputType === selectedInputType;
-    const matchesStatus = selectedStatus === "ALL" || trace.status === selectedStatus;
-    const q = hashFilter.trim().toLowerCase();
-    const matchesHash =
-      !q ||
-      trace.receiptId.toLowerCase().includes(q) ||
-      trace.verificationHash.toLowerCase().includes(q) ||
-      trace.authorityProof.toLowerCase().includes(q) ||
-      trace.claimKey.toLowerCase().includes(q);
-    const traceDate = trace.witnessTimestamp.slice(0, 10);
-    const matchesStartDate = !startDateFilter || traceDate >= startDateFilter;
-    const matchesEndDate = !endDateFilter || traceDate <= endDateFilter;
-    return matchesType && matchesStatus && matchesHash && matchesStartDate && matchesEndDate;
-  });
-
-  const activeTrace = filteredTraces.find((t) => t.receiptId === selectedReceiptId) || filteredTraces[0] || DEFAULT_TRACES[0];
-  const [selectedTrace, setSelectedTrace] = useState<ProvenanceTrace>(DEFAULT_TRACES[0]);
-
-  return (
-    <section className="space-y-8 rounded-3xl border border-cyan-500/30 bg-slate-950/90 p-6 sm:p-10 shadow-[0_0_50px_rgba(6,182,212,0.15)] backdrop-blur-xl">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-cyan-900/50 pb-6">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/60 px-3.5 py-1 text-xs font-mono font-semibold tracking-wider text-cyan-300 uppercase">
-            <GitBranch className="h-3.5 w-3.5 text-cyan-400" />
-            Verification Lineage
-          </div>
-          <h2 className="mt-3 font-mono text-2xl sm:text-3xl font-extrabold tracking-tight text-white uppercase">
-            Evidence Provenance & Verification Trace
-          </h2>
-          <p className="mt-2 max-w-2xl text-xs sm:text-sm font-mono text-slate-400">
-            Audit the end-to-end cryptographic proof chain linking claimed specifications, witness observations, and immutable reconciliation receipts.
-          </p>
-        </div>
-
-        <div className="font-mono text-xs text-slate-400">
-          PROVENANCE GRAPH: <strong className="text-cyan-300">FULLY CONNECTED</strong>
-        </div>
-      </div>
-
-      {/* Interactive Trace Flow */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Receipt Selector List */}
-        <div className="lg:col-span-5 space-y-3">
-          <span className="font-mono text-xs text-cyan-400 uppercase tracking-wider">Active Reconciliation Receipts</span>
-          {DEFAULT_TRACES.map((t) => (
-            <button
-              key={t.receiptId}
-              type="button"
-              onClick={() => setSelectedTrace(t)}
-              className={`w-full rounded-xl border p-4 text-left font-mono transition-all duration-200 ${
-                selectedTrace.receiptId === t.receiptId
-                  ? "border-cyan-400 bg-cyan-950/40 shadow-[0_0_20px_rgba(6,182,212,0.25)] ring-1 ring-cyan-400/50"
-                  : "border-slate-800 bg-slate-900/50 hover:border-cyan-900 hover:bg-slate-900/80"
-              }`}
+            <div
+              className="relative flex flex-col items-center justify-center gap-4 overflow-hidden border-x border-border/70 bg-background/70 text-center"
+              aria-label="Comparison scanner"
             >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-white">{t.claimKey}</span>
-                <span className="rounded bg-emerald-950 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-700/50">
-                  {t.status}
-                </span>
-              </div>
-              <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
-                <span>Receipt: <strong className="text-cyan-300">{t.receiptId}</strong></span>
-                <span>{new Date(t.witnessTimestamp).toLocaleTimeString()}</span>
-              </div>
-            </button>
+              <span className="absolute inset-x-0 top-0 h-px bg-primary/60" />
+              <span className="absolute inset-x-0 bottom-0 h-px bg-observed/60" />
+              <span className="h-12 w-px bg-primary/60 sm:h-16" />
+              <span
+                aria-hidden="true"
+                className="scan-pulse flex size-11 items-center justify-center rounded-full border border-primary/70 bg-background text-primary shadow-[0_0_24px_var(--color-primary)] sm:size-16"
+              >
+                <ScanLine size={28} strokeWidth={1.5} />
+              </span>
+              <span className="h-12 w-px bg-observed/60 sm:h-16" />
+              <span aria-hidden="true" className="text-[9px] font-bold uppercase text-muted-foreground">
+                Scan
+              </span>
+            </div>
+
+            <div className="min-h-64 border border-observed/70 bg-background/75 p-3 shadow-[inset_0_0_35px_var(--color-observed)] backdrop-blur-md sm:min-h-80 sm:p-5">
+              <p className="text-xs font-bold uppercase text-observed sm:text-sm">
+                02 / Observed state
+              </p>
+              <p className="mt-2 text-[10px] text-muted-foreground">WITNESS / EVIDENCE</p>
+              <dl className="mt-8 space-y-4">
+                {latest && observed ? (
+                  Object.entries(observed).map(([k, v]) => (
+                    <div
+                      key={k}
+                      className={`border-b pb-2 ${mismatchedFields.has(k) ? "border-destructive motion-safe:translate-x-1" : "border-observed/30"}`}
+                    >
+                      <dt className="break-all text-[10px] text-muted-foreground">{k}</dt>
+                      <dd
+                        className={`mt-1 break-all font-mono text-xs ${mismatchedFields.has(k) ? "text-destructive" : "text-observed"}`}
+                      >
+                        {v || "Not observed"}
+                      </dd>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs leading-6 text-muted-foreground">Awaiting evidence</p>
+                )}
+              </dl>
+            </div>
+
+            <div
+              className="col-span-3 mt-2 flex flex-wrap items-center justify-between gap-2 border border-border bg-background/90 px-4 py-3 text-xs"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={`Comparison status: ${runResult}`}
+            >
+              <span className="text-muted-foreground" aria-hidden="true">
+                MATCH RESULT
+              </span>
+              <strong
+                className={
+                  runResult === "MATCH"
+                    ? "text-verified"
+                    : runResult === "MISMATCH"
+                      ? "text-destructive"
+                      : "text-unknown"
+                }
+              >
+                {runResult === "MISMATCH"
+                  ? `MISMATCH · ${[...mismatchedFields].join(", ")}`
+                  : runResult}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="-mx-4 border-b border-border bg-surface lg:-mx-8">
+        <div className="mx-auto grid max-w-screen-2xl grid-cols-1 divide-y divide-border px-4 sm:grid-cols-5 sm:divide-x sm:divide-y-0 lg:px-8">
+          {[
+            "Compare claims to reality",
+            "Identify mismatches and gaps",
+            "Verify with real evidence",
+            "Resolve and document",
+            "Move forward with confidence",
+          ].map((s, i) => (
+            <div key={s} className="flex items-center gap-3 px-3 py-5 text-xs">
+              <span className="font-mono text-primary">0{i + 1}</span>
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-12" aria-label="Current results">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase text-primary">Local workspace / browser-only</p>
+            <h2 className="mt-2 font-display text-3xl">Current Results</h2>
+          </div>
+          <Link to="/claims/new" className="text-xs text-primary">
+            New claim ↗
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-3 xl:grid-cols-6">
+          {counts.map((c) => (
+            <Link to={c.to} key={c.label} className="bg-background p-5 hover:bg-surface">
+              <strong className="block text-2xl">{c.value}</strong>
+              <span className="mt-2 block text-xs text-muted-foreground">{c.label}</span>
+            </Link>
           ))}
         </div>
 
-        {/* Provenance Deep Graph Card */}
-        <div className="lg:col-span-7 rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 font-mono backdrop-blur">
-          <div className="flex items-center justify-between border-b border-cyan-900/40 pb-4">
-            <span className="text-xs font-bold text-cyan-300 uppercase flex items-center gap-2">
-              <Shield className="h-4 w-4 text-cyan-400" />
-              Cryptographic Lineage: {selectedTrace.receiptId}
-            </span>
-            <span className="text-[10px] text-slate-500">SHA-256 VERIFIED</span>
-          </div>
-
-          {/* Stepped Provenance Pipeline */}
-          <div className="mt-6 space-y-4">
-            {/* Step 1: Claim Authority */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-semibold flex items-center gap-1.5">
-                  <KeyRound className="h-3.5 w-3.5 text-cyan-400" />
-                  1. CLAIM SPECIFICATION & AUTHORITY
-                </span>
-                <span className="text-[10px] text-cyan-400">{selectedTrace.claimId}</span>
-              </div>
-              <div className="mt-2 text-xs text-slate-300 space-y-1">
-                <div>Key: <strong className="text-white">{selectedTrace.claimKey}</strong></div>
-                <div>Expected Value: <strong className="text-cyan-200">{selectedTrace.expectedVersion}</strong></div>
-                <div>Authority Signature: <strong className="text-emerald-400">{selectedTrace.authorityProof}</strong></div>
-              </div>
-            </div>
-
-            {/* Step 2: Observed Witness */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-semibold flex items-center gap-1.5">
-                  <Link2 className="h-3.5 w-3.5 text-purple-400" />
-                  2. INDEPENDENT WITNESS OBSERVATION
-                </span>
-                <span className="text-[10px] text-purple-300">{new Date(selectedTrace.witnessTimestamp).toLocaleString()}</span>
-              </div>
-              <div className="mt-2 text-xs text-slate-300 space-y-1">
-                <div>Source: <strong className="text-white">{selectedTrace.witnessSource}</strong></div>
-                <div>Observed Value: <strong className="text-purple-200">{selectedTrace.observedVersion}</strong></div>
-              </div>
-            </div>
-
-            {/* Step 3: Sealed Receipt */}
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/10 p-3.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                  <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
-                  3. RECONCILIATION RECEIPT SEAL
-                </span>
-                <span className="rounded bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-300 font-bold border border-emerald-800">
-                  EXACT MATCH
-                </span>
-              </div>
-              <div className="mt-2 text-xs text-slate-300 space-y-1">
-                <div>Receipt ID: <strong className="text-white font-mono">{selectedTrace.receiptId}</strong></div>
-                <div className="text-[11px] text-slate-400 truncate">Verification Hash: <code className="text-emerald-300">{selectedTrace.verificationHash}</code></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}      {/* Provenance Filters Bar */}
-      <div className="rounded-2xl border border-cyan-500/30 bg-slate-950/80 p-5 shadow-lg shadow-cyan-950/40 backdrop-blur-md space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/40 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-950/60 text-cyan-400">
-              <Filter className="h-4 w-4" />
-            </span>
-            <div>
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-cyan-300">Provenance Evidence Filters</h3>
-              <p className="font-mono text-[10px] text-slate-400">Narrow cryptographic lineage by origin, state, receipt hash, and witness observation timeline.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 font-mono text-xs">
-            <span className="rounded-md border border-cyan-500/30 bg-cyan-950/50 px-2.5 py-1 text-cyan-300">
-              Showing <strong className="text-white font-bold">{filteredTraces.length}</strong> of {DEFAULT_TRACES.length} traces
-            </span>
-            {(selectedInputType !== "ALL" || selectedStatus !== "ALL" || hashFilter || startDateFilter || endDateFilter) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedInputType("ALL");
-                  setSelectedStatus("ALL");
-                  setHashFilter("");
-                  setStartDateFilter("");
-                  setEndDateFilter("");
-                }}
-                className="inline-flex items-center gap-1.5 rounded-md border border-cyan-800/80 bg-slate-900/90 px-2.5 py-1 text-xs text-cyan-400 hover:border-cyan-400 hover:text-white transition-all"
+        {state.claims.length ? (
+          <div className="mt-6 space-y-px bg-border">
+            {state.claims.map((c) => (
+              <Link
+                key={c.id}
+                to="/claims/$claimId"
+                params={{ claimId: c.id }}
+                className="flex flex-wrap items-center justify-between gap-3 bg-background p-4 text-sm hover:bg-surface"
               >
-                <RotateCcw className="h-3 w-3" /> Reset
-              </button>
-            )}
+                <span className="min-w-0 break-words">{c.statement}</span>
+                <TruthBadge state={c.truth_state} />
+              </Link>
+            ))}
           </div>
-        </div>
+        ) : (
+          <p className="mt-6 border-l-2 border-primary pl-4 text-sm text-muted-foreground">
+            Awaiting evidence. No claims or results exist in this browser yet.
+          </p>
+        )}
+      </section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
-          {/* Input Type */}
-          <div className="space-y-1.5">
-            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-              Input Type
-            </label>
-            <select
-              value={selectedInputType}
-              onChange={(e) => setSelectedInputType(e.target.value)}
-              className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-3 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+      <section className="border-t border-border py-12">
+        <TesterLoop />
+      </section>
+
+      <section className="border-t border-border py-12">
+        <p className="text-xs uppercase text-primary">System surfaces</p>
+        <h2 className="mt-2 font-display text-3xl">The Verification Stack</h2>
+        <div className="mt-6 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((f) => (
+            <Link
+              key={f.name}
+              to={f.to}
+              className="group flex min-h-40 flex-col justify-between bg-background p-5 hover:bg-surface"
             >
-              <option value="ALL">All Sources &amp; Types</option>
-              <option value="AGENT_GATEWAY">Agent Gateway / Edge</option>
-              <option value="DATABASE">Database / Postgres</option>
-              <option value="WEBHOOK">Webhook / Secret</option>
-              <option value="ENCRYPTED_VAULT">Encrypted Vault</option>
-              <option value="SPECIFICATION">Specification</option>
-            </select>
-          </div>
-
-          {/* Verification Status */}
-          <div className="space-y-1.5">
-            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-              Verification State
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-3 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
-            >
-              <option value="ALL">All Verification States</option>
-              <option value="MATCH">MATCH (Verified Cryptographic)</option>
-              <option value="MISMATCH">MISMATCH (Divergence)</option>
-              <option value="PENDING">PENDING (Awaiting Witness)</option>
-            </select>
-          </div>
-
-          {/* Receipt Hash / Signature */}
-          <div className="space-y-1.5">
-            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-              Receipt / Authority Key
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={hashFilter}
-                onChange={(e) => setHashFilter(e.target.value)}
-                placeholder="Search hash, ID, proof..."
-                className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 pl-3 pr-8 py-2 font-mono text-xs text-white placeholder:text-slate-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
+              <span className="text-xs text-primary">{f.index} / MODULE</span>
+              <span>
+                <strong className="block text-lg">{f.name}</strong>
+                <small className="text-xs text-muted-foreground">{f.description}</small>
+              </span>
+              <ArrowUpRight
+                size={16}
+                className="self-end text-muted-foreground group-hover:text-primary"
               />
-              {hashFilter && (
-                <button
-                  type="button"
-                  onClick={() => setHashFilter("")}
-                  className="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Date Range */}
-          <div className="space-y-1.5">
-            <label className="block font-mono text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="h-3 w-3 text-cyan-400" /> Witness Date Range (UTC)
-            </label>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="date"
-                value={startDateFilter}
-                onChange={(e) => setStartDateFilter(e.target.value)}
-                className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-2.5 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
-              />
-              <span className="font-mono text-xs text-slate-500">to</span>
-              <input
-                type="date"
-                value={endDateFilter}
-                onChange={(e) => setEndDateFilter(e.target.value)}
-                className="w-full rounded-xl border border-cyan-900/80 bg-slate-900/90 px-2.5 py-2 font-mono text-xs text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition-colors"
-              />
-            </div>
-          </div>
+            </Link>
+          ))}
         </div>
-      </div>
+      </section>
 
-      
+      <section className="grid gap-6 border-t border-border py-12 md:grid-cols-3">
+        {[
+          {
+            icon: ShieldCheck,
+            title: "Deterministic Verification",
+            body: "Exact field comparisons, not averaged confidence.",
+          },
+          {
+            icon: Radio,
+            title: "Works Across Your Tools",
+            body: "Witness provenance is explicit. Connections are never assumed.",
+          },
+          {
+            icon: FileCheck2,
+            title: "Built for Real Work",
+            body: "Distinct findings retain distinct, non-authorizing receipts.",
+          },
+        ].map((t) => (
+          <div key={t.title} className="border-l border-border pl-5">
+            <t.icon size={22} className="text-primary" />
+            <h3 className="mt-4 font-semibold">{t.title}</h3>
+            <p className="mt-2 text-xs leading-6 text-muted-foreground">{t.body}</p>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
