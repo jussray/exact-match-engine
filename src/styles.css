@@ -1,0 +1,97 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-verified: var(--verified);
+  --color-inferred: var(--inferred);
+  --color-unknown: var(--unknown);
+  --color-blocked: var(--blocked);
+  --color-superseded: var(--superseded);
+  --color-surface: var(--surface);
+  --color-observed: var(--observed);
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Menlo", "Consolas", monospace;
+  --font-display: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --radius: 0.375rem;
+  --background: oklch(0.115 0.007 250);
+  --foreground: oklch(0.96 0.008 250);
+  --surface: oklch(0.17 0.01 250);
+  --card: oklch(0.17 0.01 250);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.17 0.01 250);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.81 0.14 205);
+  --primary-foreground: oklch(0.11 0.01 230);
+  --secondary: oklch(0.24 0.015 250);
+  --secondary-foreground: oklch(0.94 0.008 250);
+  --muted: oklch(0.22 0.01 250);
+  --muted-foreground: oklch(0.72 0.016 250);
+  --accent: oklch(0.35 0.07 300);
+  --accent-foreground: oklch(0.95 0.008 250);
+  --destructive: oklch(0.61 0.2 25);
+  --destructive-foreground: oklch(0.97 0.01 25);
+  --border: oklch(0.34 0.018 250);
+  --input: var(--border);
+  --ring: var(--primary);
+  --verified: oklch(0.75 0.17 152);
+  --inferred: oklch(0.75 0.13 220);
+  --unknown: oklch(0.78 0.14 85);
+  --blocked: oklch(0.7 0.18 25);
+  --superseded: oklch(0.66 0.02 250);
+  --observed: oklch(0.76 0.17 315);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-mono);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+}
+
+@utility panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.lab-grid {
+  background-image: linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scan-pulse { animation: scan-pulse 3s ease-in-out infinite; }
+  @keyframes scan-pulse { 50% { opacity: 0.55; } }
+}
