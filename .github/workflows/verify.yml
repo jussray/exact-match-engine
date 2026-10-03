@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -21,7 +21,11 @@ jobs:
         run: bun install
       - name: Typecheck
         run: bun run typecheck
-      - name: Test
+      - name: Unit tests
         run: bun test
-      - name: Build
+      - name: Production build
         run: bun run build
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Browser proof
+        run: bun run test:e2e
