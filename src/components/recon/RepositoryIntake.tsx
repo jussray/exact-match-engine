@@ -24,7 +24,8 @@ export function RepositoryIntake() {
 
   const parseRepo = () => {
     const parts = repo.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "").split("/");
-    return parts.length === 2 && parts.every(Boolean) ? { owner: parts[0], repo: parts[1] } : null;
+    const [owner, repository] = parts;
+    return parts.length === 2 && owner && repository ? { owner, repo: repository } : null;
   };
 
   async function observe() {
