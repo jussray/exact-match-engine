@@ -3,7 +3,7 @@ import type { ReconciliationReceipt } from "./types";
 export const MODULE_NAME = "Exact Match Engine";
 export const SURFACE_ID = "github:jussray/exact-match-engine";
 export const SURFACE_COMMIT = "UNKNOWN";
-export const COMPLETION_SCHEMA = "exact-match/completion@v1";
+export const COMPLETION_SCHEMA = "exact-match/completion@v2";
 const SESSION_KEY = "exact-match-session-id";
 
 export function getSessionId(): string {
@@ -17,9 +17,39 @@ export function getSessionId(): string {
   } catch { return "session-unavailable"; }
 }
 
-export interface CompletionReceiptPayload { schema:typeof COMPLETION_SCHEMA; surface_id:string; module:string; surface_commit:string; completed_at:string; session_id:string; receipt_ids:string[]; receipts:{id:string;truth_state:string;result:string}[]; browser_local_demo:true; authorizing:false; note:string; }
-export const COMPLETION_NOTE = "Identity is not proven by this receipt. Browser-local proof of a user-triggered reconciliation run only; it grants no authority and authorizes no merge, deploy, publish, spend or external mutation.";
+export interface CompletionReceiptPayload {
+  schema: typeof COMPLETION_SCHEMA;
+  surface_id: string;
+  module: string;
+  surface_commit: string;
+  completed_at: string;
+  session_id: string;
+  receipt_ids: string[];
+  receipts: { id: string; truth_state: string; result: string }[];
+  persistence: "reviewer_database";
+  browser_local_demo: false;
+  authorizing: false;
+  note: string;
+}
 
-export function buildCompletionPayload(receipts:Pick<ReconciliationReceipt,"id"|"truth_state"|"result">[],opts:{session_id:string;completed_at:string}):CompletionReceiptPayload {
-  return { schema:COMPLETION_SCHEMA, surface_id:SURFACE_ID, module:MODULE_NAME, surface_commit:SURFACE_COMMIT, completed_at:opts.completed_at, session_id:opts.session_id, receipt_ids:receipts.map((r)=>r.id), receipts:receipts.map((r)=>({id:r.id,truth_state:r.truth_state,result:r.result})), browser_local_demo:true, authorizing:false, note:COMPLETION_NOTE };
+export const COMPLETION_NOTE = "Identity is not proven by this receipt. This non-authorizing receipt records a user-triggered reconciliation run from the database-backed reviewer workspace; it grants no authority and authorizes no merge, deploy, publish, spend or external mutation.";
+
+export function buildCompletionPayload(
+  receipts: Pick<ReconciliationReceipt, "id" | "truth_state" | "result">[],
+  opts: { session_id: string; completed_at: string },
+): CompletionReceiptPayload {
+  return {
+    schema: COMPLETION_SCHEMA,
+    surface_id: SURFACE_ID,
+    module: MODULE_NAME,
+    surface_commit: SURFACE_COMMIT,
+    completed_at: opts.completed_at,
+    session_id: opts.session_id,
+    receipt_ids: receipts.map((r) => r.id),
+    receipts: receipts.map((r) => ({ id: r.id, truth_state: r.truth_state, result: r.result })),
+    persistence: "reviewer_database",
+    browser_local_demo: false,
+    authorizing: false,
+    note: COMPLETION_NOTE,
+  };
 }
