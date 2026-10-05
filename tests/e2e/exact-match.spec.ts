@@ -27,7 +27,7 @@ test('reduced motion disables scanner animation', async ({ page }) => {
 test('signed-out visitors cannot mutate proof state or fall back to browser-local storage', async ({ page }) => {
   await page.goto('/claims/new');
   await expect(page.getByRole('heading', { name: /Reviewer authorization required/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Reviewer login/i })).toBeVisible();
+  await expect(page.getByText('Reviewer login', { exact: true })).toBeVisible();
   const legacyState = await page.evaluate(() => localStorage.getItem('recon-state-v2'));
   expect(legacyState).toBeNull();
 });
