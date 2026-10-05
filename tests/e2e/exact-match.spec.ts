@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+const reviewerEmail = process.env.E2E_REVIEWER_EMAIL;
+const reviewerPassword = process.env.E2E_REVIEWER_PASSWORD;
+const persistenceConfigured = Boolean(
+  process.env.VITE_SUPABASE_URL &&
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY &&
+  reviewerEmail &&
+  reviewerPassword,
+);
+
 test('home is a truthful customer-facing verification lab', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Does It Exactly Match Reality/i })).toBeVisible();
@@ -15,68 +24,52 @@ test('reduced motion disables scanner animation', async ({ page }) => {
   expect(animationName).toBe('none');
 });
 
-test('AI review stays non-authorizing and deterministic reconciliation exposes a field mismatch', async ({ page }) => {
+test('signed-out visitors cannot mutate proof state or fall back to browser-local storage', async ({ page }) => {
   await page.goto('/claims/new');
-  await page.getByLabel('Statement').fill('Deployment SHA matches observed repository state');
-  await page.getByLabel('Expected version').fill('v1');
-  await page.getByLabel('Reconciliation key').fill('e2e/repository');
-  await page.getByRole('button', { name: 'Create claim' }).click();
-  await expect(page).toHaveURL(/\/claims\/claim-/);
+  await expect(page.getByRole('heading', { name: /Reviewer authorization required/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Reviewer login/i })).toBeVisible();
+  const legacyState = await page.evaluate(() => localStorage.getItem('recon-state-v2'));
+  expect(legacyState).toBeNull();
+});
 
-  await page.getByLabel('Kind').fill('CI test witness');
-  await page.getByLabel('Observed version').fill('v2');
-  await page.getByLabel('Reference').fill('test://authoritative-witness');
-  await page.getByRole('button', { name: 'Attach evidence' }).click();
-  await expect(page.getByText('CI test witness', { exact: true })).toBeVisible();
-  await expect(page.getByTestId('claim-receipt')).toHaveCount(0);
+test('reviewer runs a real GitHub claim to receipt and database state survives a fresh session', async ({ page, browser }) => {
+  test.skip(!persistenceConfigured, 'Requires Exact Match Supabase secrets and an authorized reviewer test account.');
 
-  await page.getByRole('button', { name: 'Review claim and evidence' }).click();
-  await expect(page.getByRole('alert')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('claim-receipt')).toHaveCount(0);
+  await page.goto('/admin/login');
+  await page.getByLabel('Email').fill(reviewerEmail!);
+  await page.getByLabel('Password').fill(reviewerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/admin\/?$/);
 
-  const prepared = await page.evaluate(() => {
-    const raw = localStorage.getItem('recon-state-v2');
-    if (!raw) throw new Error('missing recon state');
-    const state = JSON.parse(raw);
-    if (state.evidence.length !== 1) throw new Error(`expected one evidence item before reconciliation, got ${state.evidence.length}`);
-    const evidence = state.evidence[0];
-    const now = new Date().toISOString();
-    evidence.verification_class = 'authoritative';
-    evidence.scope = 'repository';
-    evidence.provider = 'ci-test-witness';
-    evidence.retrieved_at = now;
-    evidence.as_of = now;
-    localStorage.setItem('recon-state-v2', JSON.stringify(state));
-    return { evidenceCount: state.evidence.length, receiptCount: state.receipts.length };
-  });
-  expect(prepared).toEqual({ evidenceCount: 1, receiptCount: 0 });
+  const intake = page.getByTestId('repository-intake');
+  await intake.getByRole('button', { name: 'Observe head' }).click();
+  await expect(intake.getByText(/Observed GitHub head/i)).toBeVisible({ timeout: 30_000 });
+  await intake.getByRole('button', { name: 'Run claim and reconcile' }).click();
+  await expect(page.getByTestId('intake-findings')).toBeVisible();
+  await expect.poll(async () => page.getByTestId('persistence-status').textContent()).toBe('saved');
+
+  const claimLink = page.getByRole('link', { name: /Open claim evidence \+ findings/i });
+  const claimHref = await claimLink.getAttribute('href');
+  expect(claimHref).toMatch(/^\/claims\/claim-/);
 
   await page.reload();
-  await page.getByTestId('reconcile').click();
+  await expect(page.getByRole('heading', { name: /Reviewer dashboard/i })).toBeVisible();
+  await expect(page.locator(`a[href="${claimHref}"]`).first()).toBeVisible();
 
-  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem('recon-state-v2') ?? '{}').receipts?.length ?? 0)).toBeGreaterThan(0);
-  const reconciliation = await page.evaluate(() => {
-    const state = JSON.parse(localStorage.getItem('recon-state-v2') ?? '{}');
-    return {
-      receipts: (state.receipts ?? []).map((receipt: any) => ({
-        id: receipt.id,
-        result: receipt.result,
-        field: receipt.field,
-        expected: receipt.expected_field_value,
-        observed: receipt.observed_field_value,
-        authorizing: receipt.authorizing,
-      })),
-      truthState: state.claims?.[0]?.truth_state,
-    };
-  });
+  const freshContext = await browser.newContext();
+  const freshPage = await freshContext.newPage();
+  await freshPage.goto('/admin/login');
+  await freshPage.getByLabel('Email').fill(reviewerEmail!);
+  await freshPage.getByLabel('Password').fill(reviewerPassword!);
+  await freshPage.getByRole('button', { name: 'Sign in' }).click();
+  await expect(freshPage).toHaveURL(/\/admin\/?$/);
+  await expect(freshPage.locator(`a[href="${claimHref}"]`).first()).toBeVisible();
 
-  const mismatches = reconciliation.receipts.filter((receipt: any) => receipt.result === 'exact_version_mismatch');
-  expect(mismatches).toHaveLength(1);
-  expect(mismatches[0]).toMatchObject({ field: 'version', expected: 'v1', observed: 'v2', authorizing: false });
-  expect(new Set(reconciliation.receipts.map((receipt: any) => receipt.id)).size).toBe(reconciliation.receipts.length);
-  expect(reconciliation.truthState).toBe('BLOCKED');
-
-  await expect(page.getByTestId('claim-receipt').filter({ hasText: 'exact_version_mismatch' })).toHaveCount(1);
-  await expect(page.getByTestId('claim-receipt').filter({ hasText: 'exact_version_mismatch' })).toContainText(/version: v1.*v2/i);
-  await expect(page.getByText('BLOCKED', { exact: true }).first()).toBeVisible();
+  const freshIntake = freshPage.getByTestId('repository-intake');
+  await freshIntake.getByRole('button', { name: 'Observe head' }).click();
+  await expect(freshIntake.getByText(/Observed GitHub head/i)).toBeVisible({ timeout: 30_000 });
+  await freshIntake.getByRole('button', { name: 'Run claim and reconcile' }).click();
+  await expect(freshPage.getByTestId('intake-findings')).toBeVisible();
+  await expect.poll(async () => freshPage.getByTestId('persistence-status').textContent()).toBe('saved');
+  await freshContext.close();
 });
