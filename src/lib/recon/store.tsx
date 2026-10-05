@@ -132,13 +132,14 @@ export function ReconProvider({ children }: { children: ReactNode }) {
   }, [auth.ready, auth.canReview, auth.user?.id]);
 
   useEffect(() => {
-    if (!hydrated || !backendLoaded || !auth.canReview || !supabase) return;
+    const db = supabase;
+    if (!hydrated || !backendLoaded || !auth.canReview || !db) return;
     const snapshot = state;
     const updatedBy = auth.user?.id ?? null;
     setPersistence("saving");
 
     saveChain.current = saveChain.current.then(async () => {
-      const { error } = await supabase.from("recon_workspace_state").upsert(
+      const { error } = await db.from("recon_workspace_state").upsert(
         {
           workspace_key: WORKSPACE_KEY,
           state: snapshot,
