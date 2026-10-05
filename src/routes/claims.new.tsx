@@ -1,6 +1,6 @@
-import { createFileRoute,useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute,useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ClaimForm } from "@/components/recon/ClaimForm";
 import { useRecon } from "@/lib/recon/store";
 export const Route=createFileRoute("/claims/new")({component:NewClaim});
-function NewClaim(){const {addClaim}=useRecon();const navigate=useNavigate();return <div className="space-y-4"><h1 className="text-xl font-bold">New claim</h1><ClaimForm submitLabel="Create claim" onSubmit={(draft)=>{const claim=addClaim(draft);toast.success("Claim created as UNKNOWN until evidence is reconciled");void navigate({to:"/claims/$claimId",params:{claimId:claim.id}});}}/></div>;}
+function NewClaim(){const {addClaim,ready,canMutate}=useRecon();const navigate=useNavigate();if(!ready)return <p className="text-sm text-muted-foreground">Loading reviewer workspace…</p>;if(!canMutate)return <div className="panel max-w-xl space-y-3 p-5"><h1 className="text-xl font-bold">Reviewer authorization required</h1><p className="text-sm text-muted-foreground">Only authorized reviewers with a loaded Exact Match database workspace can create claims.</p><Link to="/admin/login" className="inline-flex rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Reviewer login</Link></div>;return <div className="space-y-4"><h1 className="text-xl font-bold">New claim</h1><ClaimForm submitLabel="Create claim" onSubmit={(draft)=>{try{const claim=addClaim(draft);toast.success("Claim created as UNKNOWN until evidence is reconciled");void navigate({to:"/claims/$claimId",params:{claimId:claim.id}});}catch(err){toast.error(err instanceof Error?err.message:"Claim creation failed");}}}/></div>;}
