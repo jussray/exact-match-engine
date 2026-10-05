@@ -301,7 +301,7 @@ export function ReconProvider({ children }: { children: ReactNode }) {
       };
       const evidenceForRun = [...state.evidence, evidence];
       const outcome = reconcileClaim(claim, evidenceForRun, state.rules, now);
-      const finalClaim = { ...claim, truth_state: outcome.claim_truth_state };
+      const finalClaim: Claim = { ...claim, truth_state: outcome.claim_truth_state };
       const newCookieIds = new Set(outcome.cookies.map((c) => c.id));
 
       setState((s) => ({
@@ -339,7 +339,7 @@ export function ReconProvider({ children }: { children: ReactNode }) {
   const resolveAttack = useCallback<Ctx["resolveAttack"]>(
     (id) => {
       requireWritable();
-      setState((s) => ({ ...s, attacks: s.attacks.map((a) => (a.id === id ? { ...a, status: "resolved" } : a) }));
+      setState((s) => ({ ...s, attacks: s.attacks.map((a) => (a.id === id ? { ...a, status: "resolved" } : a)) }));
     },
     [requireWritable],
   );
