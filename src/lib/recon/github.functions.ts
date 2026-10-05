@@ -11,7 +11,7 @@ export const readGitHubHead = createServerFn({ method: "GET" })
   .validator((data) => input.parse(data))
   .handler(async ({ data }) => {
     const url = `https://api.github.com/repos/${encodeURIComponent(data.owner)}/${encodeURIComponent(data.repo)}/commits/${encodeURIComponent(data.branch)}`;
-    const token = process.env.GITHUB_TOKEN?.trim();
+    const token = process.env["GITHUB_TOKEN"]?.trim();
     const response = await fetch(url, {
       headers: {
         Accept: "application/vnd.github+json",
