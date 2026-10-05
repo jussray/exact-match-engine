@@ -3,6 +3,7 @@ import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "
 import type { ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Nav } from "../components/recon/Nav";
+import { AuthProvider } from "../lib/auth";
 import { ReconProvider } from "../lib/recon/store";
 import { Toaster } from "../components/ui/sonner";
 
@@ -16,4 +17,4 @@ export const Route = createRootRouteWithContext<{queryClient:QueryClient}>()({
 });
 
 function RootShell({children}:{children:ReactNode}){return <html lang="en"><head><HeadContent/></head><body>{children}<Scripts/></body></html>;}
-function RootComponent(){const {queryClient}=Route.useRouteContext();return <QueryClientProvider client={queryClient}><ReconProvider><a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">Skip to content</a><Nav/><main id="main" className="mx-auto max-w-screen-2xl px-4 py-6 lg:px-8"><Outlet/></main><Toaster position="top-right"/></ReconProvider></QueryClientProvider>;}
+function RootComponent(){const {queryClient}=Route.useRouteContext();return <QueryClientProvider client={queryClient}><AuthProvider><ReconProvider><a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">Skip to content</a><Nav/><main id="main" className="mx-auto max-w-screen-2xl px-4 py-6 lg:px-8"><Outlet/></main><Toaster position="top-right"/></ReconProvider></AuthProvider></QueryClientProvider>;}
