@@ -25,7 +25,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function reviewerRole(user: User | null): ReviewerRole | null {
-  const role = user?.app_metadata?.role;
+  const role = user?.app_metadata?.["role"];
   return role === "admin" || role === "reviewer" ? role : null;
 }
 
