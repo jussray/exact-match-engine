@@ -2,7 +2,7 @@ name: Verify
 
 on:
   push:
-    branches: [main, fix/playwright-node-server-e2e]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
