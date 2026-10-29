@@ -1,16 +1,13 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, Download, RotateCcw, Fingerprint, ExternalLink } from "lucide-react";
+import { Download, RotateCcw, Fingerprint, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { ReconciliationReceipt } from "@/lib/recon/types";
 import {
   filterByWitnessDate,
   formatWitnessTime,
   witnessTime,
   localDayBound,
-  localDateString,
   presetWitnessRange,
   witnessReceiptsCsv,
 } from "@/lib/recon/provenance-filter";
@@ -25,8 +22,6 @@ function DateControl({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const bound = value ? localDayBound(value, "start") : null;
   return (
     <div className="min-w-0">
       <label
@@ -42,33 +37,9 @@ function DateControl({
           type="date"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent px-3 text-sm"
+          className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm"
           data-testid={`prov-${label.toLowerCase()}`}
         />
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Choose ${label.toLowerCase()} date`}
-              title={`Choose ${label.toLowerCase()} date`}
-            >
-              <CalendarDays />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="pointer-events-auto w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={bound === null ? undefined : new Date(bound)}
-              {...(bound === null ? {} : { defaultMonth: new Date(bound) })}
-              onSelect={(day) => {
-                onChange(day ? localDateString(day) : "");
-                setOpen(false);
-              }}
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
       </div>
     </div>
   );

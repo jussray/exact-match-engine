@@ -11,7 +11,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'bun run preview -- --host 127.0.0.1 --port 4173',
+    command: 'NITRO_PRESET=node_server bun run build && HOST=127.0.0.1 PORT=4173 node .output/server/index.mjs',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 120_000,

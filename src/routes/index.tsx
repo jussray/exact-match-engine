@@ -8,7 +8,6 @@ import {
   Radio,
   FileCheck2,
 } from "lucide-react";
-import labImage from "@/assets/verification-scanner.jpg";
 import { useRecon } from "@/lib/recon/store";
 import { TesterLoop } from "@/components/recon/TesterLoop";
 import { ProvenanceFilter } from "@/components/recon/ProvenanceFilter";
@@ -113,16 +112,9 @@ function Dashboard() {
   return (
     <div className="space-y-0">
       <section
-        className="relative isolate -mx-4 overflow-hidden border-b border-border lg:-mx-8"
+        className="relative isolate -mx-4 overflow-hidden border-b border-border bg-gradient-to-br from-background via-surface to-background lg:-mx-8"
         aria-label="Verification laboratory"
       >
-        <img
-          src={labImage}
-          width={1536}
-          height={1024}
-          alt="Two glass witness chambers facing a precision scanning core"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center opacity-90"
-        />
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-background/95 via-background/60 to-background/20" />
         <div className="mx-auto grid min-h-[570px] max-w-screen-2xl items-center gap-8 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)] lg:py-16">
           <div className="max-w-xl">

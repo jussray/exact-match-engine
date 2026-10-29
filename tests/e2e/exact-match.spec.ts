@@ -12,7 +12,7 @@ const persistenceConfigured = Boolean(
 test('home is a truthful customer-facing verification lab', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Does It Exactly Match Reality/i })).toBeVisible();
-  await expect(page.getByRole('status')).toContainText('Awaiting comparison');
+  await expect(page.getByRole('status', { name: /Comparison status:/ })).toContainText('Awaiting comparison');
   await expect(page.locator('body')).not.toContainText(/ULTRATHINK|Founder Control Room|FOUNDER VERIFIED|98\.7%|PROOF VALIDATED/i);
   await expect(page.getByRole('link', { name: /Run an Exact Match/i })).toBeVisible();
 });
@@ -72,4 +72,37 @@ test('reviewer runs a real GitHub claim to receipt and database state survives a
   await expect(freshPage.getByTestId('intake-findings')).toBeVisible();
   await expect.poll(async () => freshPage.getByTestId('persistence-status').textContent()).toBe('saved');
   await freshContext.close();
+});
+
+test('native witness date inputs restore shared URLs and stay read-only when signed out', async ({ page }) => {
+  await page.goto('/?from=2031-01-01&to=2031-01-10');
+  const from = page.getByTestId('prov-from');
+  const to = page.getByTestId('prov-to');
+  const exportButton = page.getByRole('button', { name: 'Export CSV' });
+
+  await expect(from).toHaveValue('2031-01-01');
+  await expect(to).toHaveValue('2031-01-10');
+  await expect(page.getByTestId('prov-empty')).toBeVisible();
+  await expect(exportButton).toBeDisabled();
+
+  await from.fill('2031-01-02');
+  await expect(page).toHaveURL(/from=2031-01-02/);
+  await page.reload();
+  await expect(from).toHaveValue('2031-01-02');
+  await expect(to).toHaveValue('2031-01-10');
+
+  await page.getByRole('button', { name: 'Reset' }).click();
+  await expect(from).toHaveValue('');
+  await expect(to).toHaveValue('');
+  await expect(exportButton).toBeDisabled();
+});
+
+test('witness range presets remain operable without optional calendar and popover dependencies', async ({ page }) => {
+  await page.goto('/');
+  for (const days of [7, 30, 90]) {
+    await page.getByRole('button', { name: `Last ${days} days` }).click();
+    await expect(page.getByTestId('prov-from')).not.toHaveValue('');
+    await expect(page.getByTestId('prov-to')).not.toHaveValue('');
+    await expect(page.getByRole('button', { name: `Last ${days} days` })).toHaveAttribute('aria-pressed', 'true');
+  }
 });
