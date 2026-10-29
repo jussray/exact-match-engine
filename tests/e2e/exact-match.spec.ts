@@ -12,7 +12,7 @@ const persistenceConfigured = Boolean(
 test('home is a truthful customer-facing verification lab', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Does It Exactly Match Reality/i })).toBeVisible();
-  await expect(page.getByRole('status')).toContainText('Awaiting comparison');
+  await expect(page.getByRole('status', { name: /Comparison status:/ })).toContainText('Awaiting comparison');
   await expect(page.locator('body')).not.toContainText(/ULTRATHINK|Founder Control Room|FOUNDER VERIFIED|98\.7%|PROOF VALIDATED/i);
   await expect(page.getByRole('link', { name: /Run an Exact Match/i })).toBeVisible();
 });
