@@ -85,7 +85,7 @@ describe("provenance date and export integrity", () => {
     expect(csv).toContain("witness_time_utc");
     expect(csv).toContain("\"false\"");
     expect(csv).toContain("2026-10-20 12:00:00.000 UTC");
-    expect(csv).toContain(" '=HYPERLINK");
+    expect(csv).toContain("\"' =HYPERLINK");
     expect(csv).toContain("'+2+2");
     expect(csv.split("\r\n").filter(Boolean)).toHaveLength(2);
   });
