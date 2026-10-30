@@ -23,9 +23,9 @@ function AdminLogin() {
   }
 
   return <div className="mx-auto max-w-lg space-y-4">
-    <div><p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Reviewer access</p><h1 className="mt-1 text-xl font-bold">Admin login</h1><p className="mt-2 text-sm text-muted-foreground">There is no public sign-up. Only accounts with an Exact Match <code>admin</code> or <code>reviewer</code> role in trusted app metadata can mutate proof state.</p></div>
+    <div><p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Reviewer access</p><h1 className="mt-1 text-xl font-bold">Admin login</h1><p className="mt-2 text-sm text-muted-foreground">This workspace is available only to authorized reviewers. There is no public sign-up.</p></div>
 
-    {!auth.configured && <div className="panel border-destructive/50 p-4 text-sm"><p className="font-semibold text-destructive">Backend not configured</p><p className="mt-2 text-muted-foreground">Provision an Exact Match-owned Supabase project, apply <code>infra/supabase/recon_persistence.sql</code>, then configure <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>.</p></div>}
+    {!auth.configured && <div className="panel border-destructive/50 p-4 text-sm"><p className="font-semibold text-destructive">Reviewer sign-in unavailable</p><p className="mt-2 text-muted-foreground">Reviewer access is not yet ready on this deployment. Please contact the workspace administrator.</p></div>}
 
     <form className="panel space-y-4 p-5" onSubmit={async (event) => {
       event.preventDefault();

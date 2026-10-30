@@ -106,3 +106,16 @@ test('witness range presets remain operable without optional calendar and popove
     await expect(page.getByRole('button', { name: `Last ${days} days` })).toHaveAttribute('aria-pressed', 'true');
   }
 });
+
+test('public reviewer login does not expose provisioning instructions', async ({ page }) => {
+  await page.goto('/admin/login');
+  await expect(page.getByRole('heading', { name: 'Admin login' })).toBeVisible();
+  await expect(page.getByText('This workspace is available only to authorized reviewers. There is no public sign-up.')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(/infra\/supabase|VITE_SUPABASE_|app metadata|Provision an Exact Match-owned/i);
+});
+
+test('public dashboard does not claim an unavailable browser-local evidence store', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Current Results' })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(/Local workspace \/ browser-only|No claims or results exist in this browser yet/i);
+});

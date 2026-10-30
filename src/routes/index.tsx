@@ -258,7 +258,7 @@ function Dashboard() {
       <section className="py-12" aria-label="Current results">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs uppercase text-primary">Local workspace / browser-only</p>
+            <p className="text-xs uppercase text-primary">Reviewer results</p>
             <h2 className="mt-2 font-display text-3xl">Current Results</h2>
           </div>
           <Link to="/claims/new" className="text-xs text-primary">
@@ -289,7 +289,7 @@ function Dashboard() {
           </div>
         ) : (
           <p className="mt-6 border-l-2 border-primary pl-4 text-sm text-muted-foreground">
-            Awaiting evidence. No claims or results exist in this browser yet.
+            Awaiting evidence. No review results are available in this session.
           </p>
         )}
       </section>
