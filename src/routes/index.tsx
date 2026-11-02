@@ -15,11 +15,10 @@ import { TruthBadge } from "@/components/recon/StateBadge";
 import { parseFields } from "@/lib/recon/witness";
 import { Button } from "@/components/ui/button";
 import { scannerStatus } from "@/lib/recon/scanner-status";
+import { sanitizeDateRange } from "@/lib/recon/provenance-filter";
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): { from?: string; to?: string } => ({
-    from: typeof search["from"] === "string" ? search["from"] : "",
-    to: typeof search["to"] === "string" ? search["to"] : "",
-  }),
+  validateSearch: (search: Record<string, unknown>): { from?: string; to?: string } =>
+    sanitizeDateRange(search["from"], search["to"]),
   head: () => ({
     meta: [
       { title: "Exact Match Engine — Claims to Reality" },

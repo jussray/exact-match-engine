@@ -5,19 +5,55 @@ export function witnessTime(r: ReconciliationReceipt): string {
   return r.witness_retrieved_at || r.created_at;
 }
 
+/** Check if a string is a valid YYYY-MM-DD calendar date (e.g. 2026-02-31 is invalid). */
+export function isValidDateString(val: unknown): val is string {
+  if (typeof val !== "string") return false;
+  const trimmed = val.trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
+  const date = new Date(0);
+  date.setFullYear(y, mo, d);
+  date.setHours(0, 0, 0, 0);
+  return date.getFullYear() === y && date.getMonth() === mo && date.getDate() === d;
+}
+
+/**
+ * Sanitize and normalize from/to query parameters:
+ * - Incomplete or invalid date strings (e.g. "2026", "2026-10", "2026-02-31", "garbage") are safely dropped to "".
+ * - Reversed ranges (from > to) are gracefully swapped into chronological order.
+ */
+export function sanitizeDateRange(
+  from: unknown,
+  to: unknown,
+): { from: string; to: string } {
+  const cleanFrom = isValidDateString(from) ? (from as string).trim() : "";
+  const cleanTo = isValidDateString(to) ? (to as string).trim() : "";
+
+  if (cleanFrom && cleanTo && cleanFrom > cleanTo) {
+    return { from: cleanTo, to: cleanFrom };
+  }
+
+  return { from: cleanFrom, to: cleanTo };
+}
+
 /**
  * Convert a YYYY-MM-DD date (as typed in a date input, the reviewer's local calendar day)
  * into an inclusive UTC millisecond bound. `end` covers the whole local day.
  */
 export function localDayBound(date: string, edge: "start" | "end"): number | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  if (!m) return null;
+  if (!isValidDateString(date)) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim())!;
   const [y, mo, d] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
   const day = new Date(0);
   day.setFullYear(y, mo, d);
-  day.setHours(0, 0, 0, 0);
-  if (day.getFullYear() !== y || day.getMonth() !== mo || day.getDate() !== d) return null;
-  return edge === "start" ? day.getTime() : day.setHours(23, 59, 59, 999);
+  if (edge === "start") {
+    day.setHours(0, 0, 0, 0);
+    return day.getTime();
+  } else {
+    day.setHours(23, 59, 59, 999);
+    return day.getTime();
+  }
 }
 
 /** Inclusive filter on witness time. Empty bounds are open. Invalid timestamps are excluded once any bound is set. */
@@ -30,6 +66,7 @@ export function filterByWitnessDate<T extends ReconciliationReceipt>(
   const hi = to ? localDayBound(to, "end") : null;
   if ((from && lo === null) || (to && hi === null)) return [];
   if (lo === null && hi === null) return receipts;
+  if (lo !== null && hi !== null && lo > hi) return [];
   return receipts.filter((r) => {
     const t = Date.parse(witnessTime(r));
     if (Number.isNaN(t)) return false;
@@ -56,7 +93,7 @@ export function formatWitnessUtc(iso: string | undefined): string {
     : `${new Date(time).toISOString().replace("T", " ").replace("Z", "")} UTC`;
 }
 
-function csvCell(value: unknown): string {
+export function csvCell(value: unknown): string {
   const text = String(value ?? "");
   // Prevent spreadsheet formula execution, including formulas hidden behind whitespace.
   const safe = /^[\s]*[=+@-]/.test(text) ? `'${text}` : text;
