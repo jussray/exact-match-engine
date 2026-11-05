@@ -9,6 +9,7 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { useRecon } from "@/lib/recon/store";
+import { MachineBackdrop } from "@/components/recon/MachineBackdrop";
 import { TesterLoop } from "@/components/recon/TesterLoop";
 import { ProvenanceFilter } from "@/components/recon/ProvenanceFilter";
 import { TruthBadge } from "@/components/recon/StateBadge";
@@ -45,6 +46,15 @@ const features = [
   { to: "/attacks", name: "Attacks", index: "05", description: "Independent challenges" },
   { to: "/continuity", name: "Continuity", index: "06", description: "Stale proof & lineage" },
   { to: "/receipts", name: "Receipts", index: "07", description: "Traceable findings" },
+] as const;
+/** Canonical comparison fields shown in the hero lab (product blueprint). */
+const BLUEPRINT_FIELDS = [
+  "deployment_sha",
+  "route",
+  "version",
+  "artifact",
+  "receipt",
+  "authority",
 ] as const;
 function Dashboard() {
   const { state } = useRecon();
@@ -115,6 +125,7 @@ function Dashboard() {
         aria-label="Verification laboratory"
       >
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-background/95 via-background/60 to-background/20" />
+        <MachineBackdrop />
         <div className="mx-auto grid min-h-[570px] max-w-screen-2xl items-center gap-8 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)] lg:py-16">
           <div className="max-w-xl">
             <p className="mb-5 flex items-center gap-2 text-xs font-bold uppercase text-primary">
@@ -161,7 +172,14 @@ function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs leading-6 text-muted-foreground">Awaiting claim</p>
+                  BLUEPRINT_FIELDS.map((k) => (
+                    <div key={k} className="border-b border-primary/30 pb-2">
+                      <dt className="text-[10px] text-muted-foreground break-all">{k}</dt>
+                      <dd className="mt-1 font-mono text-xs text-muted-foreground">
+                        Awaiting claim
+                      </dd>
+                    </div>
+                  ))
                 )}
               </dl>
             </div>
@@ -207,7 +225,14 @@ function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs leading-6 text-muted-foreground">Awaiting evidence</p>
+                  BLUEPRINT_FIELDS.map((k) => (
+                    <div key={k} className="border-b border-observed/30 pb-2">
+                      <dt className="text-[10px] text-muted-foreground break-all">{k}</dt>
+                      <dd className="mt-1 font-mono text-xs text-muted-foreground">
+                        Not observed
+                      </dd>
+                    </div>
+                  ))
                 )}
               </dl>
             </div>
