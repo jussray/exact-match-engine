@@ -65,7 +65,7 @@ export function ProvenanceFilter({
   );
   const [exportError, setExportError] = useState("");
   return (
-    <section className="border-t border-border py-12" aria-labelledby="prov-h">
+    <section className="border-t border-border py-12" aria-labelledby="prov-h" data-testid="provenance-filter">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-xs uppercase text-primary">
