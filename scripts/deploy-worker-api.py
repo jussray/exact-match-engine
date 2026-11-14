@@ -2,7 +2,7 @@
 """Deploy exact-match-engine Worker via Cloudflare API (version upload + assets),
 mirroring the wrangler deploy that produced production version 7.
 Uses the stored custom.cloudflare credential via surrogate helpers; api.cloudflare.com only."""
-import sys, os, json, hashlib, urllib.request, urllib.error, uuid
+import sys, os, json, hashlib, base64, urllib.request, urllib.error, uuid
 sys.path.insert(0, "/opt/muse/skills/custom-connector-setup/bin")
 from dynamic_credentials import add_surrogate_to_request
 
@@ -59,9 +59,10 @@ for dirpath, _, names in os.walk(pub):
         full = os.path.join(dirpath, n)
         rel = "/" + os.path.relpath(full, pub).replace(os.sep, "/")
         data = open(full, "rb").read()
-        h = hashlib.sha256(data).hexdigest()[:32]
+        ext = os.path.splitext(n)[1].lstrip(".")
+        h = hashlib.sha256((base64.b64encode(data).decode() + ext).encode()).hexdigest()[:32]
         manifest[rel] = {"hash": h, "size": len(data)}
-        files_by_hash[h] = data
+        files_by_hash[h] = (data, os.path.splitext(n)[1])
 print("assets:", len(manifest))
 
 # 2. upload session
@@ -75,7 +76,9 @@ print("buckets to upload:", [len(b) for b in buckets])
 # 3. upload buckets
 import base64
 for b in buckets:
-    parts = [(h, h, "application/octet-stream", base64.b64encode(files_by_hash[h])) for h in b]
+    import mimetypes
+    EXTRA = {".mjs": "text/javascript", ".js": "text/javascript", ".css": "text/css", ".ico": "image/x-icon", ".svg": "image/svg+xml"}
+    parts = [(h, h, EXTRA.get(files_by_hash[h][1]) or mimetypes.guess_type("x" + files_by_hash[h][1])[0] or "application/octet-stream", base64.b64encode(files_by_hash[h][0])) for h in b]
     out = req_multipart(f"/accounts/{ACCT}/workers/assets/upload?base64=true", parts, bearer=jwt)
     if not out.get("success"):
         print("upload failed:", json.dumps(out)[:800]); raise SystemExit(1)
@@ -112,6 +115,5 @@ print("new version:", version_id, "number:", ver["result"].get("number"))
 dep = req_json("POST", f"/accounts/{ACCT}/workers/scripts/{SCRIPT}/deployments", {
     "strategy": "percentage",
     "versions": [{"version_id": version_id, "percentage": 100}],
-    "annotations": {"workers/triggered_by": "deployment"},
 })
 print("deployment:", json.dumps(dep.get("result", dep))[:400])
